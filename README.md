@@ -2,180 +2,20 @@
 
 今天我们来手把手教你实现一个超简版圣诞帽头像生成器。
 
-
 ## 实现功能思路：
 
-1、将预览图片、帽子放在一个地方avatar元素里
+1. 叠加帽子和头像：通过选择图片，展示头像预览。通过绝对定位，将预览图片、帽子叠加在一起。
+2. 实现帽子功能：拖拽、旋转、缩放。
+3. 生成头像图片：用一个 Javascript 库（html2canvas.js）将 avatar 整个截下来成一个 `canvas`，将截下来的 `canvas` 的图片数据赋给 `img` 标签，展示出来。
+4. 完成基本功能后，完善其他小功能，如：切换帽子
 
-2、选择图片 -> 展示图片预览
+## 1. 叠加帽子和头像
 
-3、实现帽子功能：拖拽、旋转、缩放
-
-4、用一个js库（html2canvas.js）将avatar整个截下来成一个canvas，将截下来的canvas的图片数据赋给img标签，展示出来
-
-5、完成基本功能后，完善其他小功能，如：切换帽子、切换图片修改区/完成区
-
-## html + css
+通过 `input:file` 标签选择文件
 ```html
-<!DOCTYPE html>
-<body lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>头像大作战</title>
-    <style>
-        body {
-            background: #000 url(./img/bg.png) no-repeat center;
-            text-align: center;
-            user-select: none;
-        }
-        /* 设置button的一点样式 */
-        button {
-            background-color: #fff;
-            border: none;
-            padding: 5px 10px;
-            box-shadow: 0 0 10px 0 #ccc;
-        }
-        /* 修改图片区域 */
-        #modify-area {
-            display: block;
-            margin-top: 100px;
-        }
-        #modify-area.hide {
-            /* 隐藏  修改图片区域 */
-            display: none;
-        }
-        /* 存放预览图片、帽子的父元素 */
-        #avatar {
-            width: 300px;
-            height: 300px;
-            position: relative;
-            margin: auto;
-            overflow: hidden;
-        }
-        #avatar #avatar_img {
-            width: 300px;
-            height: 300px;
-        }
-        #avatar #avatar_template {
-            width: 100%;
-            height: 100%;
-        }
-        #hatBox {
-            width: 100px;
-            position: absolute;
-        }
-        #hatBox #rotateImg {
-            display: none;
-            position: absolute;
-            left: 50%;
-            margin-left: -10px;
-            top: -30px;
-            width: 20px;
-            height: 20px;
-            background-image: url('./img/rotate.png');
-            background-size: 100% 100%;
-        }
-        #hatBox #rotateImg.active {
-            /* 展示  旋转图标 */
-            display: block;
-        }
-        #hatBox #spreadImg {
-            display: none;
-            position: absolute;
-            right: -10px;
-            top: calc(100% - 10px);
-            width: 20px;
-            height: 20px;
-            background-image: url('./img/spread.png');
-            background-size: 100% 100%;
-        }
-        #hatBox #spreadImg.active {
-            /* 展示  缩放图标 */
-            display: block;
-        }
-        /* 最后图片区域 */
-        #result-area {
-            display: none;
-        }
-        #result-area.active {
-            /* 展示   最后图片区域 */
-            display: block;
-        }
-        #result-img {
-            width: 300px;
-            height: 300px;
-        }
-        #tips {
-            color: #fff;
-            font-size: 20px;
-        }
-    </style>
-</head>
-
-<body>
-    <header>
-        <h1>头像大作战</h1>
-    </header>
-    <article>
-        <section>
-            <p>
-                <!--accept 限制了只能选择图片-->
-                <input type="file" name="" id="upload" accept="image/*" onchange="loadImage()">
-            </p>
-        </section>
-        <!-- 修改图片区域 -->
-        <section id="modify-area">
-            <div id="avatar">
-                <!-- <img src="../hat.png" alt="0" id="avatar_template"> -->
-                <div id="hatBox">
-                    <img src="./cap/01.png" alt="1" id="avatar_template" draggable="false">
-                    <span id="rotateImg"></span>
-                    <span id="spreadImg"></span>
-                </div>
-                <!-- avatar_img是预览图片 -->
-                <img src="" alt="" id="avatar_img" draggable="false">
-            </div>
-            <p>
-                <button id="prev" onclick="prevTemplate()">上一个</button>
-                <button id="download" onclick="downloadImage()">下载</button>
-                <button id="next" onclick="nextTemplate()">下一个</button>
-            </p>
-        </section>
-        <!-- 图片完成区域 -->
-        <section id="result-area">
-            <!-- result-img是完成后展示的图片 -->
-            <img src="" alt="" id="result-img">
-            <p id="tips">
-                长按保存图片！
-            </p>
-        </section>
-    </article>
-    <footer>
-        <script>...</script>
-    </footer>
-</body>
-</html>
+<input type="file" name="" id="upload" accept="image/*" 
+onchange="loadImage()">
 ```
-## 定义的一些全局变量
-```javascript
-let avatar = document.getElementById('avatar');
-let tempImg = document.getElementById('avatar_template');//帽子img元素
-let avatarLeft = avatar.offsetLeft;//预览图片距离html页面的left值
-let avatarTop = avatar.offsetTop;//预览图片距离html页面的top值
-let hatBox = document.getElementById('hatBox');//帽子的父级hatBox
-let rotateImg = document.getElementById('rotateImg');//旋转图片
-let spreadImg = document.getElementById('spreadImg');//拉伸图标
-//全局下保存原来帽子的尺寸
-let originHatSize = { w: hatBox.offsetWidth, h: hatBox.offsetHeight };
-//拉伸帽子时，先记下比例，防止帽子变形
-let hatSizeRate = originHatSize.w / originHatSize.h;
-```
-## 选择图片 -> 展示图片预览
-
-`<input type="file" name="" id="upload" accept="image/*" `
-`onchange="loadImage()">`
 ```javascript
 function loadImage() {
     /*创建文件读取对象*/
@@ -188,31 +28,71 @@ function loadImage() {
     }
 }
 ```
-## 实现帽子功能
-### 1、拖拽帽子
-#### 给帽子父级hatBox绑定鼠标点击/触摸事件
-- 实现拖拽帽子思路：已知鼠标第一次点的时候的坐标(originX,originY)，已知每次帽子距离左上角距离预览图片左上角的距离(inX,inY)，已知预览图片左上角在html页面距左上(imgX,imgY)，（假设以预览图片左上角为中心）可以算出刚开始鼠标点击时，鼠标距离帽子左上（disX，disY），然后假设每次移动鼠标的坐标（nowX,nowY）
-可以计算出以预览图片左上角为中心，帽子的left，top值
+通过绝对定位叠加帽子和头像：
+```html
+<style>
+#avatar {
+    width: 300px;
+    height: 300px;
+    position: relative;
+    margin: auto;
+    overflow: hidden;
+}
 
+#avatar #avatar_img {
+    width: 300px;
+}
+
+#avatar #avatar_template {
+    width: 100%;
+    height: 100%;
+}
+
+#hatBox {
+    width: 100px;
+    position: absolute;
+}
+</style>
+<div id="avatar">
+    <div id="hatBox">
+        <img src="./cap/01.png" alt="1" id="avatar_template" draggable="false">
+        <!-- 旋转缩放控制点 -->
+        <span id="rotateImg"></span>
+        <span id="spreadImg"></span>
+    </div>
+    <img src="" alt="" id="avatar_img">
+</div>
+```
+## 2. 实现帽子功能
+### 2.1 拖拽帽子
+要实现拖拽帽子，需要给帽子父级`hatBox`绑定鼠标按下事件，实现思路：
+1. 已知鼠标第一次点的时候的坐标(originX, originY)，
+2. 已知每次帽子距离左上角距离预览图片左上角的距离(inX, inY)，
+3. 已知预览图片左上角在html页面距左上(imgX, imgY)（假设以预览图片左上角为中心）。
+4. 可以算出刚开始鼠标点击时，鼠标距离帽子左上角(disX, disY)，然后假设每次移动鼠标的坐标(nowX, nowY)
+可以计算出以预览图片左上角为中心，帽子的(left, top)值:
+```javascript
 disX = originX - imgX - inX
-
 disY = originY - imgY - inY
-
 left = (nowX - disX) - imgX
-
 top = (nowY - disY) - imgY
+```
 ![](./images/1.jpg)
+
 ```javascript
 let hatBox = document.getElementById('hatBox');
 hatBox.onmousedown = dragHatStart;
 hatBox.ontouchstart = dragHatStart;
 
 function dragHatStart(e) {
-    hatBox.style.border = '1px dotted #eef';//显示帽子白色边框
-    rotateImg.classList.add('active');//展示旋转图标
-    spreadImg.classList.add('active');//展示缩放图标
+    //显示帽子白色边框
+    hatBox.style.border = '1px dotted #eef';
+    //展示旋转图标
+    rotateImg.classList.add('active');
+    //展示缩放图标
+    spreadImg.classList.add('active');
 
-    /*兼容pc端和移动端的点击坐标*/
+    /* 兼容pc端和移动端的点击坐标 */
     let clientObj = {};
     if (e.targetTouches) {
         clientObj.clientX = e.targetTouches[0].pageX;
@@ -222,24 +102,24 @@ function dragHatStart(e) {
         clientObj.clientY = e.clientY;
     }
 
-    /*disX：点击帽子时，点击坐标距离帽子图标最左端的距离
-    * disY：点击帽子时，点击坐标距离帽子图标最上边的距离
-    */
+    /* disX：点击帽子时，点击坐标距离帽子图标最左端的距离
+     * disY：点击帽子时，点击坐标距离帽子图标最上边的距离
+     */
     let disX = clientObj.clientX - avatarLefthatBox.offsetLeft;
     let disY = clientObj.clientY - avatarTophatBox.offsetTo
     
-    /*兼容pc端*/
-    document.onmousemove = dragHatMove;//实现拖拽
-    document.onmouseup = dragHatEnd;//不拖拽时要处理的程序
+    /* 兼容pc端 */
+    document.onmousemove = dragHatMove; // 实现拖拽
+    document.onmouseup = dragHatEnd; // 不拖拽时要处理的程序
 
-    /*兼容移动端*/
+    /* 兼容移动端 */
     document.ontouchmove = dragHatMove;
     document.ontouchend = dragHatEnd;
 
 
-    /*给document绑定的mousemove事件处理程序*/
+    /* 给document绑定的mousemove事件处理程序 */
     function dragHatMove(e) {
-        /*兼容移动端和pc端的点击的坐标点*/
+        /* 兼容移动端和pc端的点击的坐标点 */
         let clientObj = {};
         if (e.targetTouches) {
             clientObj.clientX = e.targetTouches.pageX;
@@ -289,10 +169,17 @@ function dragHatStart(e) {
     
 };
 ```
-### 2、旋转帽子(给旋转图标绑定事件)
-- 旋转帽子思路：可以计算出当前帽子最中心的点在html页面里的坐标(capX,capY)，假设每次鼠标在html页面坐标是(tempX, tempY)，就可以求出旋转的角度deg
 
-deg = Math.atan2(tempX - capX,tempY - capY) / Math.PI * 180 + 90
+### 2.2 旋转帽子
+要实现旋转帽子，我们通过加入可以旋转控制点，给他绑定鼠标按下的事件来实现，思路：
+1. 可以计算出当前帽子最中心的点在 HTML 页面里的坐标(capX, capY)；
+2. 假设每次鼠标在 HTML 页面坐标是(tempX, tempY)，就可以求出旋转的角度 deg
+```javascript
+Math.atan2(y,x)可以得到坐标系中(0,0)到(y,x)这条线和x轴之间的弧度
+deg = Math.atan2(tempY - capY,tempX - capX) / Math.PI * 180 + 90
+```
+![](./images/2.jpg)  
+具体代码：
 ```javascript
 rotateImg.onmousedown = rotateStart;
 rotateImg.ontouchstart = rotateStart;
@@ -331,8 +218,12 @@ function rotateStart(e) {
 
 }
 ```
-### 3、缩放帽子(给缩放图标绑定事件)
-- 缩放帽子实现思路：已知当前帽子的宽度，长度，和帽子的比例，又因为可以计算出帽子右下角在html页面的坐标，也知道当前鼠标的坐标，可以求出帽子增大了多少宽度，然后因为知道帽子比例，也就可以求出高度
+### 2.3 缩放帽子
+要实现缩放帽子，我们通过加入可以缩放控制点，给他绑定鼠标按下的事件来实现，思路：
+1. 已知当前帽子的宽度，长度，和帽子的比例；
+2. 计算出帽子右下角在 HTML 页面的坐标；
+3. 加上当前鼠标的坐标，可以求出帽子增大了多少宽度，而高度就按比例换算即可；
+
 ```javascript
 //全局下保存原来帽子的尺寸
 let originHatSize = { w: hatBox.offsetWidth, h: hatBox.offsetHeight };
@@ -387,25 +278,29 @@ function spreadStart(e) {
 }
 ```
 
+## 3. 生成头像图片
 
-## 将avatar截下来
-### 1、在该js文件前引入html2canvas.js文件
-```javascript
-`<script src="./html2canvas.js"></script>`
-`<script>/*我们刚刚写的那些代码....*/</script>`
+### 3.1 引入 html2canvas.js
+因为要 canvas 不能直接做图片的旋转贴图，所以我们用一种偷懒的方式来做，通过 html2canvas 库来实现。他可以把 HTML + CSS 渲染的内容直接导出成为 canvas。
+首先，在 HTML 中引入 `html2canvas.js`。
+```html
+<script src="./html2canvas.js"></script>
 ```
-### 2、给下载的按钮绑定点击事件
-`<button id="download" onclick="downloadImage()">下载</button>`
+### 3.2 给下载的按钮绑定点击事件
+```html
+<button id="download" onclick="downloadImage()">下载</button>
+```
 ```javascript
 function downloadImage() {
-    hatBox.style.border = 'none';//去除hatBox的白色边框
-    rotateImg.classList.remove('active');//隐藏旋转图标
-    spreadImg.classList.remove('active');//隐藏缩放图标
+    hatBox.style.border = 'none';// 去除hatBox的白色边框
+    rotateImg.classList.remove('active');// 隐藏旋转图标
+    spreadImg.classList.remove('active');// 隐藏缩放图标
     
-    /* 使用html2canvas.js里的方法
-    * 语法：html2canvas(element).then(function(canvas){
-    *    console.log(canvas);//这里的canvas就是截图成功后返回的canvas
-    })
+    /* 使用 html2canvas.js 里的方法，语法：
+    * html2canvas(element).then(function(canvas){
+    *    console.log(canvas);
+    *    //这里的canvas就是截图成功后返回的canvas
+    * })
     */
     html2canvas(document.getElementById('avatar')).then(function (canvas) {
         //获取canvas的链接
@@ -414,27 +309,30 @@ function downloadImage() {
         let resultImg = document.getElementById('result-img');
         resultImg.src = resultImageUrl;
         resultImg.onload = function () {
-            //这里判断top值只是让每次下载完后，帽子都回去一个正常的top值，可有可无
+            //这里判断 top 值只是让每次下载完后，帽子都回去一个正常的top值，可有可无
             if (hatBox.offsetTop < 0) {
                 hatBox.style.top = 0;
             }
             // 创建一个 a 标签，设置 download 属性，点击时下载文件
             var save_link = document.createElement('a');
-            save_link.href = resultImageUrl;//设置下载的链接
-            save_link.download = 'avatar.png';//设置下载的图片名称
-            save_link.click();//通过方法手动触发点击
-
-            showResult(true);//切换是否完成图片下载，该函数在下边
+            // 设置下载的链接
+            save_link.href = resultImageUrl;
+            // 设置下载的图片名称
+            save_link.download = 'avatar.png';
+            // 通过方法手动触发点击
+            save_link.click();
+            // 切换是否完成图片下载，该函数在下边
+            showResult(true);
         }
     });
 }
 ```
-## 切换图片修改区modify-area和图片完成区result-area
-### 全局下定义一个showResult函数，去切换
+由于微信浏览器不能做到下载，所以我们在生成好 canvas 之后，就切换图片修改区 modify-area 和图片完成区 result-area。这样用户就可以长按 canvas 保存头像了。
+我们通过在全局下定义一个 `showResult` 函数，来完成切换功能。
 ```javascript
 function showResult(status) {
     if (status) {
-        //展示图片完成区，隐藏修改区
+        // 展示图片完成区，隐藏修改区
         document.getElementById('modify-area').classList.add('hide');
         document.getElementById('result-area').classList.add('active');
     } else {
@@ -444,17 +342,18 @@ function showResult(status) {
     }
 }
 ```
-## 切换不同帽子
-### 1、给上一页，下一页按钮绑定事件
+## 4. 切换不同帽子
+### 4.1 给上一页，下一页按钮绑定事件
 
-`<button id="prev" onclick="prevTemplate()">上一个</button>`
-
-`<button id="next" onclick="nextTemplate()">下一个</button>`
+```html
+<button id="prev" onclick="prevTemplate()">上一个</button>
+<button id="next" onclick="nextTemplate()">下一个</button>
+```
 ```javascript
 function prevTemplate() {
     var current = parseInt(document.getElementById('avatar_template').alt);
-    //img文件夹里是01.png - 40.png
-    //current：通过这一次的帽子img元素里的alt值计算出前一个帽子的索引
+    // img文件夹里是01.png - 40.png
+    // current：通过这一次的帽子img元素里的alt值计算出前一个帽子的索引
     current = (current - 1 + 40) % 41;
     if (current === 0) {
         current = 1;
@@ -465,7 +364,7 @@ function prevTemplate() {
     document.getElementById('avatar_template').alt = current;
 }
 
-/*解释同理上边*/
+/* 解释同理上边 */
 function nextTemplate() {
     var current = parseInt(document.getElementById('avatar_template').alt);
     current = (current + 1) % 41;
@@ -477,8 +376,4 @@ function nextTemplate() {
 }
 ```
 
-最后成品（https://szisa.github.io/avatar_maker/sample.html）：
-
-![](./images/result.gif)
-
-完整代码可以来这看哦：https://github.com/szisa/avatar_maker/blob/master/sample.html# christmas
+如此，一个简版圣诞头像生成器就完成拉！完整代码见 GitHub：https://github.com/szisa/christmas

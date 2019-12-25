@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>头像大作战</title>
+    <link rel="stylesheet" href="./css/view.css">
+</head>
+
+<body>
+    <header>
+        <h1>头像大作战</h1>
+    </header>
+    <article>
+        <section>
+            <p>
+                <!--accept 限制了只能选择图片-->
+                <input type="file" name="" id="upload" accept="image/*" onchange="loadImage()">
+            </p>
+        </section>
+        <!-- 修改图片区域 -->
+        <section id="modify-area">
+            <div id="avatar">
+                <!-- <img src="../hat.png" alt="0" id="avatar_template"> -->
+                <div id="hatBox">
+                    <img src="./cap/01.png" alt="1" id="avatar_template" draggable="false">
+                    <span id="rotateImg"></span>
+                    <span id="spreadImg"></span>
+                </div>
+                <img src="" alt="" id="avatar_img" draggable="false">
+            </div>
+
+            <p>
+                <button id="prev" onclick="prevTemplate()">上一个</button>
+                <button id="download" onclick="downloadImage()">下载</button>
+                <button id="next" onclick="nextTemplate()">下一个</button>
+            </p>
+        </section>
+
+        <!-- 图片完成区域 -->
+        <section id="result-area">
+            <img src="" alt="" id="result-img">
+            <p id="tips">
+                长按保存图片！
+            </p>
+        </section>
+    </article>
+    <footer>
+        <script src="./js/html2canvas.js"></script>
+        <script src="./js/index.js"></script>
+    </footer>
+
+</body>
+
+</html>
